@@ -2,7 +2,7 @@ from collections.abc import Callable
 from uuid import UUID
 
 
-class Repository[T]:
+class ObjectRepository[T]:
     def __init__(
         self,
         key: str,
@@ -71,3 +71,16 @@ class Repository[T]:
             self.item_type.from_dict(item)
             for item in items
         ]
+
+
+class File[T](ObjectRepository[T]):
+    def __init__(self, dir: str, key:str, item_type:type[T]):
+        super().__init__(key, item_type)
+        self.directory = dir
+
+
+    def add_item(self, item: T):
+
+        super().add_item(item)
+
+

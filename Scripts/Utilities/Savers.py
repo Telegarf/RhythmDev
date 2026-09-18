@@ -3,8 +3,7 @@ from Scripts.Utilities.SavingData import *
 import subprocess
 import json
 from Scripts.Utilities.Repositories import Repository
-
-
+    
 
 class BlockSaver:
     def __init__(self, file_name:str):
@@ -54,6 +53,11 @@ class BlockSaver:
 
 main_saver = Saver("data.json")
 
+def create_directory(path_to_place:str):
+        path = Path(path_to_place)
+        path.mkdir(exist_ok=True, parents=True)
+        path = path / "config.json"
+        
 def get_storage_dir():
     return main_saver.get_property("main_dir_path")
 

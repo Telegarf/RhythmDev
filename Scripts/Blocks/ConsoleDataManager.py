@@ -1,6 +1,6 @@
 from pathlib import Path
-from Scripts.SavingData import Project
-import Scripts.Savers as Savers
+from Scripts.Utilities.SavingData import Project
+import Scripts.Utilities.Savers as Savers
 import subprocess
 
 class ConsoleDataManager:
