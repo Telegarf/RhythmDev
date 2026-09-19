@@ -1,59 +1,54 @@
+from config import Config
 from pathlib import Path
-from Scripts.Utilities.SavingData import Project
-import Scripts.Utilities.Savers as Savers
+from Scripts.Utilities.SavingData import Project, Command
+from Scripts.Utilities.Savers import project_saver, command_saver
+from Scripts.Utilities.Repositories import FileRepository
 import subprocess
 
-class ConsoleDataManager:
-    def __init__(self, saver:Savers):
-        self.saver = saver
+def select_project(project:Project):
+    change_file("id", project.project_id)  
+    change_file("name", project.name)  
+    change_file("path", project.project_path)  
 
-    def select_project(self, project:Project):
-        self.change_file("id", project.project_id)  
-        self.change_file("name", project.name)  
-        self.change_file("path", project.project_path)  
+    project_saver.set_property("currentProject", project.uuid)
 
-        self.saver.set_current_project(project)
-    def change_file(self, name:str, text:str):
+def change_file(name:str, text:str):
 
-        if not name.startswith("current_project_"):
-            name = f"current_project_{name}"
+    if not name.startswith("current_project_"):
+        name = f"current_project_{name}"
 
-        path = Path("WindowsVariables") / f"{name}.txt"
+    path = get_variables_dir()
+    path.mkdir(exist_ok=True)
+    path = path / f"{name}.txt"
+    with open(path, "w") as f:
+        f.write(text)
 
-        with open(path, "w") as f:
-            f.write(text)
+def set_environment_variable(var:str, value:str):
+    subprocess.run(["setx", var, value], check=True)
 
-    def install_environment_variables(self):
-        for name in (
-            "PRJ_NAME",
-            "PRJ_PATH",
-            "PRJ_ID",
-        ):
-            subprocess.run(["setx", name, ""], check=True)
-    def set_current_project(self, project:Project):
-        data = self.saver.get_data()
-        data["currentProject"] = project.uuid
+def save_to_profile():
+    alies:str = ""
+    commands:str = ""
 
-        self.saver.save(data)
+    with open(Path("default_data") / "__def__.ps1", "r") as f:
+        commands = ""
+        for line in f.readlines():
+            commands += line
+        commands += "\n\n\n"
+    repo:FileRepository = command_saver.reps[Command]
+    for command in repo.get_items():
+        commands += f"{repo.get_file_text(command)} \n"
+        alies += f"Set-Alias -Name {command.alias} -Value {command.name} -Force \n"
 
-    def save_to_profile(self):
-        alies:str = ""
-        commands:str = ""
-        with open(Path("commands") / "__def__.ps1", "r") as f:
-            start = ""
-            for line in f.readlines():
-                start += line
+    result:str = f"{commands} \n\n{alies}"
 
-        for command in self.Commands.get_items():
-            commands += f"{command.get_command_text()} \n"
-            alies += f"Set-Alias -Name {command.alias} -Value {command.name} -Force \n"
-    
-        result:str = f"{start} \n\n\n {commands} \n\n{alies}"
-    
-        profile = subprocess.check_output(
-            ["powershell", "-NoProfile", "-Command", "$PROFILE"],
-            text=True
-        ).strip()
-    
-        with Path(profile).open("w", encoding="utf-8") as f:
-            f.write(result)
+    profile = subprocess.check_output(
+        ["powershell", "-NoProfile", "-Command", "$PROFILE"],
+        text=True
+    ).strip()
+
+    with Path(profile).open("w", encoding="utf-8") as f:
+        f.write(result)
+
+def get_variables_dir() -> Path:
+    return Path(Config.get_property("storage_dir_path"))/ "WindowsVariables"

@@ -1,19 +1,21 @@
 from pathlib import Path
 from Scripts.Utilities.SavingData import *
-import subprocess
 import json
-from Scripts.Utilities.Repositories import Repository
-    
+from Scripts.Utilities.Repositories import ObjectRepository, FileRepository
+from config import Config
 
 class BlockSaver:
-    def __init__(self, file_name:str):
+    def __init__(self, file_name:str, path_to_file="/"):
+        if(path_to_file == "/"):
+            path_to_file = Config.get_property("storage_dir_path")
         file_path = Path(file_name)
 
         if file_path.suffix != ".json":
             file_path = file_path.with_suffix(".json")
 
-        path = Path(get_storage_dir()) / file_path
+        path = Path(path_to_file) / "saves" / file_path
         path.parent.mkdir(exist_ok=True, parents=True)
+        path.touch()
 
         self.path = path
         self.reps = {}
@@ -42,7 +44,7 @@ class BlockSaver:
 
         self.save(data)
 
-    def add_repository(self, data_type: type, rep: Repository[SavingData]):
+    def add_repository(self, data_type: type, rep: ObjectRepository[SavingData]):
         if rep.saver is not None:
             raise ValueError("Repository already belongs to a Saver")
         if data_type in self.reps:
@@ -51,15 +53,6 @@ class BlockSaver:
         rep.saver = self
         self.reps[data_type] = rep
 
-main_saver = Saver("data.json")
-
-def create_directory(path_to_place:str):
-        path = Path(path_to_place)
-        path.mkdir(exist_ok=True, parents=True)
-        path = path / "config.json"
-        
-def get_storage_dir():
-    return main_saver.get_property("main_dir_path")
 
 
 
@@ -73,23 +66,18 @@ command_saver = BlockSaver("commands.json")
 project_saver = BlockSaver("projects.json")
 launcher_saver = BlockSaver("launcher.json")
 
+
 #Command
-def on_command_added(command: Command):
-    command.get_path().touch()
-    with open(command.get_path(), "w") as f:
-        text = f"function {command.name}" + r" {" + "\n \n}"
-        f.writelines(text)
-com_rep = Repository("commands", Command)
+com_rep = FileRepository("_commands", "commands", Command)
 command_saver.add_repository(Command, com_rep)
-com_rep.add_callback(com_rep.Commands.add_item, on_command_added)
 
 #Project
-prj_rep = Repository("projects", Project)
+prj_rep = ObjectRepository("projects", Project)
 project_saver.add_repository(Project, prj_rep)
 
-#Cmd Command
-lch_rep = Repository("launchers", Launcher)
-launcher_saver.add_repository(lch_rep)
+#Launcher
+lch_rep = FileRepository("_launchers", "launchers", Launcher)
+launcher_saver.add_repository(Launcher, lch_rep)
 
 
 
